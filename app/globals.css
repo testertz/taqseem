@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 42 25% 97%;
+    --foreground: 165 19% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 165 19% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 165 19% 11%;
+
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 40 44% 90%;
+    --secondary-foreground: 165 19% 11%;
+
+    --muted: 40 30% 93%;
+    --muted-foreground: 155 9% 39%;
+
+    --accent: 40 58% 56%;
+    --accent-foreground: 165 19% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 40 28% 86%;
+    --input: 40 28% 86%;
+    --ring: 160 84% 39%;
+
+    --success: 142 71% 45%;
+    --warning: 33 92% 50%;
+    --info: 217 91% 60%;
+
+    --radius: 0.625rem;
+
+    --chart-1: 160 84% 39%;
+    --chart-2: 40 58% 56%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 33 92% 50%;
+    --chart-5: 217 91% 60%;
+  }
+
+  .dark {
+    --background: 165 38% 5%;
+    --foreground: 42 25% 95%;
+
+    --card: 165 33% 8%;
+    --card-foreground: 42 25% 95%;
+
+    --popover: 165 33% 8%;
+    --popover-foreground: 42 25% 95%;
+
+    --primary: 160 72% 42%;
+    --primary-foreground: 165 38% 5%;
+
+    --secondary: 165 20% 14%;
+    --secondary-foreground: 42 25% 95%;
+
+    --muted: 165 20% 14%;
+    --muted-foreground: 42 10% 60%;
+
+    --accent: 40 52% 52%;
+    --accent-foreground: 165 38% 5%;
+
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 42 25% 95%;
+
+    --border: 165 25% 18%;
+    --input: 165 25% 18%;
+    --ring: 160 72% 42%;
+
+    --success: 142 60% 45%;
+    --warning: 33 80% 52%;
+    --info: 217 80% 58%;
+
+    --chart-1: 160 72% 42%;
+    --chart-2: 40 52% 52%;
+    --chart-3: 142 60% 45%;
+    --chart-4: 33 80% 52%;
+    --chart-5: 217 80% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-fraunces), Georgia, serif;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
