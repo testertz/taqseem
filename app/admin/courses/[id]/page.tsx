@@ -19,7 +19,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
   const existingCourse = courses.find((c) => c.id === id);
   const [title, setTitle] = useState(existingCourse?.title || '');
   const [description, setDescription] = useState(existingCourse?.description || '');
-  const [level, setLevel] = useState(existingCourse?.level || 'Beginner');
+  const [level, setLevel] = useState<string>(existingCourse?.level || 'Beginner');
   const [price, setPrice] = useState(existingCourse?.price?.toString() || '');
   const [topic, setTopic] = useState(existingCourse?.topic || 'Banking');
   const [language, setLanguage] = useState(existingCourse?.language || 'English');
