@@ -245,7 +245,7 @@ export default function CheckoutPage() {
                 <Globe className="h-3.5 w-3.5 text-primary" /> Price shown in USD. Converted at checkout if paying in another currency.
               </p>
 
-              <Link href="/checkout/success">
+              <Link href="/checkout/success?course=c1">
                 <Button className="mt-5 w-full bg-primary text-primary-foreground" size="lg">
                   Complete Purchase
                   <ArrowRight className="ms-2 h-4 w-4" />

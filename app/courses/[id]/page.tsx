@@ -78,7 +78,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     <Badge className="ms-1 bg-accent/15 text-accent-foreground">{Math.round((1 - course.price / course.originalPrice) * 100)}% off</Badge>
                   )}
                 </div>
-                <Link href="/checkout">
+                <Link href={`/checkout?course=${course.id}`}>
                   <Button className="mt-4 w-full bg-primary text-primary-foreground" size="lg">Enroll Now</Button>
                 </Link>
                 <Button variant="outline" className="mt-2 w-full" size="lg">
@@ -318,7 +318,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             </div>
             <span className="text-xs text-muted-foreground">{course.hours}h · {course.lessons} lessons</span>
           </div>
-          <Link href="/checkout">
+          <Link href={`/checkout?course=${course.id}`}>
             <Button className="bg-primary text-primary-foreground" size="lg">Enroll Now</Button>
           </Link>
         </div>

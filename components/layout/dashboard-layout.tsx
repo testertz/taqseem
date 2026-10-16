@@ -18,13 +18,12 @@ import {
   Bell,
   Search,
   Globe,
-  Moon,
-  Sun,
   Menu,
   X,
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const navItems = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -66,9 +65,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex">
               <Globe className="h-4 w-4 text-muted-foreground" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex">
-              <Sun className="h-4 w-4 text-muted-foreground" />
-            </Button>
+            <ThemeToggle className="hidden sm:flex" />
             <Button variant="ghost" size="icon" className="relative h-9 w-9">
               <Bell className="h-4 w-4 text-muted-foreground" />
               <span className="absolute end-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />

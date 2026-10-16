@@ -6,6 +6,7 @@ import { Menu, X, Globe, ChevronDown, PlayCircle, Calendar, UserRound, BookOpen,
 import { Logo } from '@/components/brand/brand';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { ThemeToggle } from '@/components/theme-toggle';
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -125,6 +126,7 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <ThemeToggle />
           <Button variant="ghost" size="sm" className="text-muted-foreground">
             <Globe className="me-1.5 h-4 w-4" />
             EN
@@ -184,6 +186,10 @@ export function Navbar() {
                   </Link>
                 ))}
                 <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-sm font-medium text-foreground">Theme</span>
+                    <ThemeToggle />
+                  </div>
                   <Link href="/login">
                     <Button variant="outline" className="w-full">Login</Button>
                   </Link>

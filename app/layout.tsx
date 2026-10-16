@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter, Fraunces } from 'next/font/google';
+import { ThemeProvider } from '@/components/theme-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -46,7 +47,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${fraunces.variable} font-sans`}>
-        {children}
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

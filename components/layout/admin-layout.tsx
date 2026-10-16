@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/brand/brand';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,7 +24,6 @@ import {
   X,
   ChevronDown,
   LogOut,
-  Moon,
   Globe,
 } from 'lucide-react';
 
@@ -144,9 +144,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" size="icon" className="hidden md:inline-flex">
               <Globe className="h-4.5 w-4.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="hidden md:inline-flex">
-              <Moon className="h-4.5 w-4.5" />
-            </Button>
+            <ThemeToggle className="hidden md:inline-flex" />
             <button className="relative rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
               <Bell className="h-4.5 w-4.5" />
               <span className="absolute end-1.5 top-1.5 h-2 w-2 rounded-full bg-accent" />

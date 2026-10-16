@@ -20,6 +20,7 @@ export type Course = {
   requirements: string[];
   sections: CourseSection[];
   courseReviews: CourseReview[];
+  videoUrl?: string;
 };
 
 export type CourseSection = {
@@ -202,6 +203,7 @@ export const courses: Course[] = [
         ],
       },
     ],
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBigBuckBunny.mp4',
     courseReviews: [
       {
         id: 'r1',

@@ -55,7 +55,7 @@ export default function CheckoutSuccessPage() {
             </div>
           </div>
 
-          <Link href="/dashboard">
+          <Link href="/dashboard/courses/c1">
             <Button className="mt-6 w-full bg-primary text-primary-foreground" size="lg">
               Start Learning
               <ArrowRight className="ms-2 h-4 w-4" />

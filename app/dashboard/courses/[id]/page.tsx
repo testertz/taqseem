@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { courses } from '@/lib/marketing-data';
-import { PlayCircle, Lock, CheckCircle2, FileText, MessageSquare, NotebookPen, ChevronLeft, ChevronRight, Settings, Maximize2 } from 'lucide-react';
+import { PlayCircle, Lock, CheckCircle2, FileText, MessageSquare, NotebookPen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -28,21 +28,25 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ id: str
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="space-y-4">
           <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-black shadow-soft-lg">
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-black">
-              <div className="text-center">
-                <PlayCircle className="mx-auto h-16 w-16 text-primary-foreground/80" />
-                <p className="mt-3 text-sm text-primary-foreground/60">Video player — {allLessons[currentLessonIndex]?.title}</p>
+            {course.videoUrl ? (
+              <video
+                key={activeLesson}
+                src={course.videoUrl}
+                controls
+                className="h-full w-full"
+                poster={course.thumbnail}
+                preload="metadata"
+              >
+                <track kind="captions" />
+              </video>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-black">
+                <div className="text-center">
+                  <PlayCircle className="mx-auto h-16 w-16 text-primary-foreground/80" />
+                  <p className="mt-3 text-sm text-primary-foreground/60">Video coming soon — {allLessons[currentLessonIndex]?.title}</p>
+                </div>
               </div>
-            </div>
-            <div className="absolute bottom-0 inset-x-0 flex items-center gap-3 bg-gradient-to-t from-black/80 to-transparent p-4">
-              <button className="text-white/80 hover:text-white"><PlayCircle className="h-6 w-6" /></button>
-              <div className="h-1 flex-1 rounded-full bg-white/20">
-                <div className="h-full w-1/3 rounded-full bg-primary" />
-              </div>
-              <span className="text-xs tabular-nums text-white/60">04:12 / 12:30</span>
-              <button className="text-white/60 hover:text-white"><Settings className="h-4 w-4" /></button>
-              <button className="text-white/60 hover:text-white"><Maximize2 className="h-4 w-4" /></button>
-            </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-4">

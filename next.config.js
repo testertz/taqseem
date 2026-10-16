@@ -7,7 +7,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
-  swcMinify: false,
 };
 
 module.exports = nextConfig;
