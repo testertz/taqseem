@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Award, Download, Share2, Search } from 'lucide-react';
 
@@ -68,25 +70,27 @@ export default function CertificatesPage() {
           </div>
           <div className="relative sm:w-64">
             <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
+            <Input
               type="text"
               placeholder="Search certificates..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full rounded-lg border border-input bg-background ps-9 pe-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="ps-9"
             />
           </div>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-card p-12 text-center">
-            <Award className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-muted-foreground">No certificates found. Complete a course to earn one.</p>
-          </div>
+          <Card className="rounded-2xl shadow-soft">
+            <CardContent className="p-12 text-center">
+              <Award className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="text-muted-foreground">No certificates found. Complete a course to earn one.</p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid gap-5 md:grid-cols-2">
             {filtered.map((cert) => (
-              <div key={cert.id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:shadow-soft-lg">
+              <Card key={cert.id} className="overflow-hidden rounded-2xl shadow-soft transition-all hover:shadow-soft-lg">
                 <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary to-primary/70 p-6">
                   <div className="absolute inset-0 bg-pattern-overlay opacity-20" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.1' stroke-width='1'%3E%3Cpath d='M30 0L37 23L60 30L37 37L30 60L23 37L0 30L23 23Z'/%3E%3C/g%3E%3C/svg%3E\")" }} />
                   <div className="relative flex h-full flex-col items-center justify-center text-center">
@@ -100,7 +104,7 @@ export default function CertificatesPage() {
                     </div>
                   </div>
                 </div>
-                <div className="p-4">
+                <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Certificate ID: <span className="font-mono font-medium text-foreground">{cert.certId}</span></p>
                   <div className="mt-3 flex items-center gap-2">
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => downloadCertificate(cert)}>
@@ -110,8 +114,8 @@ export default function CertificatesPage() {
                       <Share2 className="me-1.5 h-3.5 w-3.5" /> Share
                     </Button>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

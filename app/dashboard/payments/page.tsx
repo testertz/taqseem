@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { studentOrders, type StudentOrder } from '@/lib/dashboard-data';
 import { useToast } from '@/hooks/use-toast';
 import { Download, CreditCard, CheckCircle2, Clock, XCircle, Plus, Trash2 } from 'lucide-react';
@@ -100,8 +101,8 @@ export default function PaymentsPage() {
             { label: 'Orders', value: String(orders.length), icon: Download },
             { label: 'Active subscription', value: 'Pro', icon: CheckCircle2 },
           ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-border bg-card p-4 shadow-soft">
-              <div className="flex items-center gap-3">
+            <Card key={stat.label} className="rounded-xl shadow-soft">
+              <CardContent className="flex items-center gap-3 p-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                   <stat.icon className="h-5 w-5 text-primary" />
                 </div>
@@ -109,16 +110,16 @@ export default function PaymentsPage() {
                   <p className="font-display text-xl font-bold tabular-nums text-foreground">{stat.value}</p>
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
 
-        <div className="rounded-2xl border border-border bg-card shadow-soft">
-          <div className="border-b border-border p-5">
-            <h2 className="font-display text-lg font-semibold text-foreground">Order History</h2>
-          </div>
-          <div className="overflow-x-auto">
+        <Card className="rounded-2xl shadow-soft">
+          <CardHeader className="border-b border-border pb-4">
+            <CardTitle className="font-display text-lg font-semibold">Order History</CardTitle>
+          </CardHeader>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -157,11 +158,13 @@ export default function PaymentsPage() {
               </TableBody>
             </Table>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-          <h2 className="mb-4 font-display text-lg font-semibold text-foreground">Payment Methods</h2>
-          <div className="space-y-3">
+        <Card className="rounded-2xl shadow-soft">
+          <CardHeader className="pb-4">
+            <CardTitle className="font-display text-lg font-semibold">Payment Methods</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {methods.map((m) => (
               <div key={m.id} className="flex items-center justify-between rounded-xl border border-border bg-background p-4">
                 <div className="flex items-center gap-3">
@@ -185,8 +188,8 @@ export default function PaymentsPage() {
             <Button variant="outline" className="w-full" onClick={() => setAddOpen(true)}>
               <Plus className="me-1.5 h-4 w-4" /> Add payment method
             </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Add payment method dialog */}
         <Dialog open={addOpen} onOpenChange={setAddOpen}>

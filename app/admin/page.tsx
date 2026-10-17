@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   BarChart,
@@ -46,19 +47,21 @@ function StatCard({ stat, icon: Icon }: { stat: typeof adminStats[0]; icon: type
     : stat.value.toLocaleString();
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
-      <div className="flex items-start justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
+    <Card className="rounded-xl shadow-soft">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <Icon className="h-5 w-5 text-primary" />
+          </div>
+          <div className={`flex items-center gap-1 text-xs font-semibold ${stat.change >= 0 ? 'text-success' : 'text-error'}`}>
+            {stat.change >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+            {Math.abs(stat.change)}%
+          </div>
         </div>
-        <div className={`flex items-center gap-1 text-xs font-semibold ${stat.change >= 0 ? 'text-success' : 'text-error'}`}>
-          {stat.change >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-          {Math.abs(stat.change)}%
-        </div>
-      </div>
-      <p className="mt-3 text-2xl font-bold font-display tabular-nums text-foreground">{formatted}</p>
-      <p className="text-sm text-muted-foreground">{stat.label}</p>
-    </div>
+        <p className="mt-3 text-2xl font-bold font-display tabular-nums text-foreground">{formatted}</p>
+        <p className="text-sm text-muted-foreground">{stat.label}</p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -152,10 +155,10 @@ export default function AdminDashboardPage() {
         {/* Charts row */}
         <div className="grid gap-4 lg:grid-cols-3">
           {/* Revenue chart */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-soft lg:col-span-2">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Card className="rounded-xl shadow-soft lg:col-span-2">
+            <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="font-display text-base font-semibold text-foreground">Revenue Overview</h3>
+                <CardTitle className="font-display text-base font-semibold">Revenue Overview</CardTitle>
                 <p className="text-xs text-muted-foreground">Monthly revenue and enrollments</p>
               </div>
               <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
@@ -174,8 +177,8 @@ export default function AdminDashboardPage() {
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="h-56">
+            </CardHeader>
+            <CardContent className="h-56 pl-0 pr-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
@@ -196,13 +199,15 @@ export default function AdminDashboardPage() {
                   <Bar yAxisId="rev" dataKey="enrollments" name="Enrollments" fill="var(--accent)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Topic distribution */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
-            <h3 className="mb-4 font-display text-base font-semibold text-foreground">Enrollments by Topic</h3>
-            <div className="space-y-3">
+          <Card className="rounded-xl shadow-soft">
+            <CardHeader className="pb-4">
+              <CardTitle className="font-display text-base font-semibold">Enrollments by Topic</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               {topicDistribution.map((t) => (
                 <div key={t.topic}>
                   <div className="mb-1 flex items-center justify-between text-xs">
@@ -214,19 +219,20 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Needs attention */}
-        <div className="rounded-xl border border-warning/30 bg-card p-5 shadow-soft">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="flex items-center gap-2 font-display text-base font-semibold text-foreground">
+        <Card className="rounded-xl border-warning/30 shadow-soft">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 font-display text-base font-semibold">
               <AlertTriangle className="h-4 w-4 text-warning" /> Needs Attention
               <Badge variant="secondary" className="bg-warning/10 text-warning">{attentionItems.length}</Badge>
-            </h3>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2">
             {attentionItems.map((item) => (
               <Link
                 key={item.id}
@@ -243,20 +249,21 @@ export default function AdminDashboardPage() {
                 <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               </Link>
             ))}
-          </div>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Recent orders + enrollments */}
         <div className="grid gap-4 lg:grid-cols-2">
           {/* Recent orders */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-base font-semibold text-foreground">Recent Orders</h3>
+          <Card className="rounded-xl shadow-soft">
+            <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="font-display text-base font-semibold">Recent Orders</CardTitle>
               <Link href="/admin/orders" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                 View all <ArrowUpRight className="h-3 w-3" />
               </Link>
-            </div>
-            <div className="space-y-3">
+            </CardHeader>
+            <CardContent className="space-y-3">
               {adminOrders.slice(0, 5).map((order) => (
                 <div key={order.id} className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
@@ -274,18 +281,18 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Recent enrollments */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-base font-semibold text-foreground">Recent Enrollments</h3>
+          <Card className="rounded-xl shadow-soft">
+            <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="font-display text-base font-semibold">Recent Enrollments</CardTitle>
               <Link href="/admin/users" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                 View all <ArrowUpRight className="h-3 w-3" />
               </Link>
-            </div>
-            <div className="space-y-3">
+            </CardHeader>
+            <CardContent className="space-y-3">
               {adminEnrollments.slice(0, 5).map((enr) => {
                 const user = adminUsers.find((u) => u.name === enr.user);
                 return (
@@ -309,8 +316,8 @@ export default function AdminDashboardPage() {
                   </div>
                 );
               })}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AdminLayout>

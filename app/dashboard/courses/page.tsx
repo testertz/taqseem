@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { ArchFrame } from '@/components/brand/brand';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { enrolledCourses } from '@/lib/dashboard-data';
 import { courses } from '@/lib/marketing-data';
@@ -46,11 +47,13 @@ export default function MyCoursesPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-card p-12 text-center">
-            <BookOpen className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-muted-foreground">No courses in this category yet.</p>
-            <Link href="/courses"><Button variant="outline" size="sm" className="mt-4">Browse courses</Button></Link>
-          </div>
+          <Card className="rounded-2xl shadow-soft">
+            <CardContent className="p-12 text-center">
+              <BookOpen className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="text-muted-foreground">No courses in this category yet.</p>
+              <Link href="/courses"><Button variant="outline" size="sm" className="mt-4">Browse courses</Button></Link>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((enrolled) => {
@@ -59,7 +62,7 @@ export default function MyCoursesPage() {
               return (
                 <div
                   key={course.id}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg"
+                  className="group flex flex-col overflow-hidden rounded-2xl shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg"
                 >
                   <Link href={`/dashboard/courses/${course.id}`} className="relative">
                     <ArchFrame className="aspect-[16/10] w-full bg-secondary">

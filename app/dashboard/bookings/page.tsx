@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -68,7 +69,8 @@ export default function BookingsPage() {
           <div className="space-y-3">
             <h2 className="font-display text-lg font-semibold text-foreground">Upcoming</h2>
             {upcoming.map((b) => (
-              <div key={b.id} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+              <Card key={b.id} className="rounded-2xl shadow-soft">
+                <CardContent className="p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-3">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
@@ -95,11 +97,12 @@ export default function BookingsPage() {
                     </Button>
                   </div>
                 </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
+          <div className="rounded-2xl border border-dashed bg-card p-12 text-center">
             <Video className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
             <p className="text-muted-foreground">No upcoming sessions. Book a private session with an instructor.</p>
             <Button variant="outline" size="sm" className="mt-4" asChild>
@@ -112,7 +115,8 @@ export default function BookingsPage() {
           <div className="space-y-3">
             <h2 className="font-display text-lg font-semibold text-foreground">Past Sessions</h2>
             {past.map((b) => (
-              <div key={b.id} className="rounded-2xl border border-border bg-card p-5 shadow-soft opacity-80">
+              <Card key={b.id} className="rounded-2xl shadow-soft opacity-80">
+                <CardContent className="p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-3">
                     <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl', b.status === 'completed' ? 'bg-success/10' : 'bg-destructive/10')}>
@@ -136,7 +140,8 @@ export default function BookingsPage() {
                   </div>
                   <span className="font-display font-bold tabular-nums text-foreground">${b.price}</span>
                 </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
