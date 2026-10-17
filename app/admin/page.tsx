@@ -1,11 +1,41 @@
 'use client';
 
+import { useState } from 'react';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { adminStats, revenueData, topicDistribution, adminOrders, adminEnrollments } from '@/lib/admin-data';
-import { TrendingUp, TrendingDown, ArrowUpRight, BookOpen, Users, CreditCard, GraduationCap, MoreHorizontal } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import {
+  adminStats,
+  revenueData,
+  topicDistribution,
+  adminOrders,
+  adminEnrollments,
+  adminUsers,
+} from '@/lib/admin-data';
+import { useToast } from '@/hooks/use-toast';
+import {
+  TrendingUp,
+  TrendingDown,
+  ArrowUpRight,
+  BookOpen,
+  Users,
+  CreditCard,
+  GraduationCap,
+  Download,
+  AlertTriangle,
+  XCircle,
+  Clock,
+} from 'lucide-react';
 import Link from 'next/link';
 
 function StatCard({ stat, icon: Icon }: { stat: typeof adminStats[0]; icon: typeof BookOpen }) {
@@ -32,8 +62,63 @@ function StatCard({ stat, icon: Icon }: { stat: typeof adminStats[0]; icon: type
   );
 }
 
+function downloadCsv(filename: string, rows: (string | number)[][]) {
+  const csv = rows
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminDashboardPage() {
-  const maxRevenue = Math.max(...revenueData.map((d) => d.revenue));
+  const { toast } = useToast();
+  const [range, setRange] = useState<'7m' | 'year'>('7m');
+
+  const chartData = range === '7m' ? revenueData : yearData;
+  const maxTopic = Math.max(...topicDistribution.map((t) => t.count));
+
+  const attentionItems = [
+    ...adminOrders.filter((o) => o.status === 'refunded' || o.status === 'failed').map((o) => ({
+      id: o.id,
+      icon: o.status === 'failed' ? XCircle : Clock,
+      title: `${o.status === 'failed' ? 'Failed payment' : 'Refund pending'} — ${o.user}`,
+      detail: `${o.item} · $${o.amount} · ${o.date}`,
+      href: '/admin/orders',
+    })),
+    ...adminEnrollments.filter((e) => e.status === 'not-started').map((e) => ({
+      id: e.id,
+      icon: AlertTriangle,
+      title: `${e.user} hasn't started ${e.course}`,
+      detail: `Enrolled ${e.enrolledDate} · 0% progress`,
+      href: '/admin/users',
+    })),
+    ...adminUsers.filter((u) => u.status === 'pending').map((u) => ({
+      id: u.id,
+      icon: AlertTriangle,
+      title: `${u.name} awaits approval`,
+      detail: `Joined ${u.joinedDate} · ${u.country}`,
+      href: '/admin/users',
+    })),
+  ];
+
+  const exportReport = () => {
+    downloadCsv('taqseem-orders.csv', [
+      ['Order ID', 'Student', 'Email', 'Item', 'Amount', 'Method', 'Status', 'Date'],
+      ...adminOrders.map((o) => [o.id, o.user, o.userEmail, o.item, o.amount, o.method, o.status, o.date]),
+    ]);
+    setTimeout(() => {
+      downloadCsv('taqseem-enrollments.csv', [
+        ['Enrollment ID', 'Student', 'Course', 'Progress %', 'Enrolled', 'Status', 'Certificate'],
+        ...adminEnrollments.map((e) => [e.id, e.user, e.course, e.progress, e.enrolledDate, e.status, e.certificate ? 'Yes' : 'No']),
+      ]);
+    }, 400);
+    toast({ title: 'Report exported', description: 'Orders and enrollments downloaded as CSV files.' });
+  };
 
   return (
     <AdminLayout>
@@ -45,7 +130,9 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-muted-foreground">Welcome back. Here's what's happening at Taqseem today.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">Export Report</Button>
+            <Button variant="outline" size="sm" onClick={exportReport}>
+              <Download className="me-1.5 h-3.5 w-3.5" /> Export Report
+            </Button>
             <Button size="sm" asChild>
               <Link href="/admin/courses/new">
                 <span className="flex items-center gap-1.5"><BookOpen className="h-4 w-4" /> New Course</span>
@@ -66,33 +153,49 @@ export default function AdminDashboardPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           {/* Revenue chart */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-soft lg:col-span-2">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="font-display text-base font-semibold text-foreground">Revenue Overview</h3>
                 <p className="text-xs text-muted-foreground">Monthly revenue and enrollments</p>
               </div>
-              <Badge variant="secondary">Last 7 months</Badge>
+              <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
+                {[
+                  { id: '7m' as const, label: 'Last 7 months' },
+                  { id: 'year' as const, label: 'This year' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setRange(opt.id)}
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      range === opt.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex h-48 items-end gap-2">
-              {revenueData.map((d) => (
-                <div key={d.month} className="flex flex-1 flex-col items-center gap-2">
-                  <div className="flex w-full flex-col items-center gap-1">
-                    <div
-                      className="w-full max-w-[32px] rounded-t-md bg-primary/80 transition-all hover:bg-primary"
-                      style={{ height: `${(d.revenue / maxRevenue) * 160}px` }}
-                    />
-                    <div
-                      className="w-full max-w-[32px] rounded-b-md bg-accent/60 transition-all hover:bg-accent"
-                      style={{ height: `${(d.enrollments / 360) * 40}px` }}
-                    />
-                  </div>
-                  <span className="text-[10px] font-medium text-muted-foreground">{d.month}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Revenue</span>
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-accent" /> Enrollments</span>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} barSize={20}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="rev" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v >= 1000 ? `${v / 1000}k` : v}`} />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value: number | string, name: string) =>
+                      name === 'Revenue' ? [`$${Number(value).toLocaleString()}`, 'Revenue'] : [value, 'Enrollments']
+                    }
+                  />
+                  <Bar yAxisId="rev" dataKey="revenue" name="Revenue" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="rev" dataKey="enrollments" name="Enrollments" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -107,11 +210,39 @@ export default function AdminDashboardPage() {
                     <span className="tabular-nums text-muted-foreground">{t.count}</span>
                   </div>
                   <div className="h-2 rounded-full bg-secondary">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${t.percentage * 3}%` }} />
+                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(t.count / maxTopic) * 100}%` }} />
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Needs attention */}
+        <div className="rounded-xl border border-warning/30 bg-card p-5 shadow-soft">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 font-display text-base font-semibold text-foreground">
+              <AlertTriangle className="h-4 w-4 text-warning" /> Needs Attention
+              <Badge variant="secondary" className="bg-warning/10 text-warning">{attentionItems.length}</Badge>
+            </h3>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {attentionItems.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 transition-colors hover:border-warning/40"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning/10">
+                  <item.icon className="h-4 w-4 text-warning" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">{item.detail}</p>
+                </div>
+                <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
           </div>
         </div>
 
@@ -155,26 +286,29 @@ export default function AdminDashboardPage() {
               </Link>
             </div>
             <div className="space-y-3">
-              {adminEnrollments.slice(0, 5).map((enr) => (
-                <div key={enr.id} className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src="https://images.pexels.com/photos/13801472/pexels-photo-13801472.jpeg?auto=compress&cs=tinysrgb&h=80&w=80" />
-                    <AvatarFallback>{enr.user.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{enr.user}</p>
-                    <p className="truncate text-xs text-muted-foreground">{enr.course}</p>
-                  </div>
-                  <div className="text-end">
-                    <div className="flex items-center gap-1.5">
-                      <div className="h-1.5 w-16 rounded-full bg-secondary">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${enr.progress}%` }} />
+              {adminEnrollments.slice(0, 5).map((enr) => {
+                const user = adminUsers.find((u) => u.name === enr.user);
+                return (
+                  <div key={enr.id} className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={user?.avatar} alt={enr.user} />
+                      <AvatarFallback>{enr.user.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{enr.user}</p>
+                      <p className="truncate text-xs text-muted-foreground">{enr.course}</p>
+                    </div>
+                    <div className="text-end">
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-1.5 w-16 rounded-full bg-secondary">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${enr.progress}%` }} />
+                        </div>
+                        <span className="text-xs tabular-nums text-muted-foreground">{enr.progress}%</span>
                       </div>
-                      <span className="text-xs tabular-nums text-muted-foreground">{enr.progress}%</span>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -182,3 +316,16 @@ export default function AdminDashboardPage() {
     </AdminLayout>
   );
 }
+
+const yearData = [
+  { month: 'Jan', revenue: 3100, enrollments: 120 },
+  { month: 'Feb', revenue: 3600, enrollments: 145 },
+  { month: 'Mar', revenue: 3400, enrollments: 130 },
+  { month: 'Apr', revenue: 4200, enrollments: 180 },
+  { month: 'May', revenue: 5100, enrollments: 210 },
+  { month: 'Jun', revenue: 4800, enrollments: 195 },
+  { month: 'Jul', revenue: 6200, enrollments: 240 },
+  { month: 'Aug', revenue: 7100, enrollments: 280 },
+  { month: 'Sep', revenue: 8500, enrollments: 320 },
+  { month: 'Oct', revenue: 9200, enrollments: 360 },
+];

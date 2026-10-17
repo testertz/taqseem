@@ -1,23 +1,62 @@
 'use client';
 
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import { Award, Download, Share2, Search } from 'lucide-react';
-import { useState } from 'react';
 
 const certificates = [
-  { id: 'cert1', course: 'Foundations of Islamic Banking & Finance', instructor: 'Dr. Yusuf Al-Kabir', date: 'Oct 10, 2026', certId: 'TQS-CERT-2026-1042', grade: 'A' },
+  { id: 'cert1', course: 'Fintech & Digital Islamic Banking', instructor: 'Dr. Amina Hassan', date: 'Oct 10, 2026', certId: 'TQS-CERT-2026-1042', grade: 'A' },
   { id: 'cert2', course: 'Islamic Microfinance & Development', instructor: 'Fatima Noor', date: 'Sep 15, 2026', certId: 'TQS-CERT-2026-1010', grade: 'A+' },
 ];
 
+function downloadCertificate(cert: (typeof certificates)[0]) {
+  const lines = [
+    '══════════════════════════════════════════',
+    '        TAQSEEM — CERTIFICATE OF COMPLETION',
+    '══════════════════════════════════════════',
+    '',
+    `  Course:      ${cert.course}`,
+    `  Instructor:  ${cert.instructor}`,
+    `  Completed:   ${cert.date}`,
+    `  Grade:       ${cert.grade}`,
+    `  Cert. ID:    ${cert.certId}`,
+    '',
+    '  Awarded to Aisha Juma for successfully',
+    '  completing all course requirements.',
+    '',
+    '══════════════════════════════════════════',
+    '  Demo certificate generated locally.',
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${cert.certId}-certificate.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function CertificatesPage() {
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
 
   const filtered = certificates.filter((c) =>
     c.course.toLowerCase().includes(search.toLowerCase()) ||
     c.instructor.toLowerCase().includes(search.toLowerCase())
   );
+
+  const shareCertificate = async (cert: (typeof certificates)[0]) => {
+    const link = `${window.location.origin}/dashboard/certificates?cert=${cert.certId}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({ title: 'Link copied', description: 'Share link copied to clipboard.' });
+    } catch {
+      toast({ title: 'Share link', description: link });
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -64,10 +103,10 @@ export default function CertificatesPage() {
                 <div className="p-4">
                   <p className="text-xs text-muted-foreground">Certificate ID: <span className="font-mono font-medium text-foreground">{cert.certId}</span></p>
                   <div className="mt-3 flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => downloadCertificate(cert)}>
                       <Download className="me-1.5 h-3.5 w-3.5" /> Download
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => shareCertificate(cert)}>
                       <Share2 className="me-1.5 h-3.5 w-3.5" /> Share
                     </Button>
                   </div>

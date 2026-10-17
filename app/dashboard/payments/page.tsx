@@ -1,19 +1,23 @@
 'use client';
 
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Download, CreditCard, CheckCircle2, Clock, XCircle } from 'lucide-react';
-
-const orders = [
-  { id: 'TQS-2026-1042', date: 'Oct 15, 2026', item: 'Foundations of Islamic Banking', amount: 89, method: 'Visa •••• 4242', status: 'paid' },
-  { id: 'TQS-2026-1038', date: 'Oct 12, 2026', item: 'Pro Membership — Monthly', amount: 29, method: 'PayPal', status: 'paid' },
-  { id: 'TQS-2026-1031', date: 'Oct 05, 2026', item: 'Private session — Dr. Amina Hassan', amount: 95, method: 'Visa •••• 4242', status: 'paid' },
-  { id: 'TQS-2026-1025', date: 'Sep 28, 2026', item: 'Private session — Omar Abdullatif', amount: 75, method: 'M-Pesa', status: 'refunded' },
-  { id: 'TQS-2026-1019', date: 'Sep 12, 2026', item: 'Pro Membership — Monthly', amount: 29, method: 'PayPal', status: 'paid' },
-  { id: 'TQS-2026-1010', date: 'Aug 28, 2026', item: 'Islamic Microfinance & Development', amount: 69, method: 'Visa •••• 4242', status: 'paid' },
-];
+import { studentOrders, type StudentOrder } from '@/lib/dashboard-data';
+import { useToast } from '@/hooks/use-toast';
+import { Download, CreditCard, CheckCircle2, Clock, XCircle, Plus, Trash2 } from 'lucide-react';
 
 const statusConfig = {
   paid: { label: 'Paid', icon: CheckCircle2, className: 'bg-success/10 text-success' },
@@ -21,8 +25,66 @@ const statusConfig = {
   refunded: { label: 'Refunded', icon: XCircle, className: 'bg-destructive/10 text-destructive' },
 };
 
+type PaymentMethod = { id: string; label: string; detail: string; isDefault: boolean };
+
+function downloadInvoice(order: StudentOrder) {
+  const lines = [
+    'TAQSEEM — INVOICE',
+    '='.repeat(40),
+    `Invoice:    ${order.id}`,
+    `Date:       ${order.date}`,
+    '',
+    `Item:       ${order.item}`,
+    `Amount:     $${order.amount}.00 USD`,
+    `Method:     ${order.method}`,
+    `Status:     ${order.status === 'paid' ? 'PAID' : order.status.toUpperCase()}`,
+    '',
+    '-'.repeat(40),
+    'Thank you for learning with Taqseem.',
+    'This is a demo invoice generated locally.',
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${order.id}-invoice.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function PaymentsPage() {
+  const { toast } = useToast();
+  const [orders] = useState<StudentOrder[]>(studentOrders);
+  const [methods, setMethods] = useState<PaymentMethod[]>([
+    { id: 'm1', label: 'Visa •••• 4242', detail: 'Expires 08/28', isDefault: true },
+    { id: 'm2', label: 'PayPal', detail: 'you@example.com', isDefault: false },
+  ]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [removeTarget, setRemoveTarget] = useState<PaymentMethod | null>(null);
+
   const totalSpent = orders.filter((o) => o.status === 'paid').reduce((sum, o) => sum + o.amount, 0);
+
+  const addMethod = () => {
+    const digits = cardNumber.replace(/\D/g, '');
+    if (digits.length < 12 || !/^\d{2}\/\d{2}$/.test(expiry)) {
+      toast({ title: 'Check your details', description: 'Enter a valid card number and expiry (MM/YY).', variant: 'destructive' });
+      return;
+    }
+    const last4 = digits.slice(-4);
+    setMethods((prev) => [...prev, { id: `m${Date.now()}`, label: `Card •••• ${last4}`, detail: `Expires ${expiry}`, isDefault: false }]);
+    setCardNumber('');
+    setExpiry('');
+    setAddOpen(false);
+    toast({ title: 'Payment method added', description: `Card ending in ${last4} saved (demo).` });
+  };
+
+  const removeMethod = (m: PaymentMethod) => {
+    setMethods((prev) => prev.filter((x) => x.id !== m.id));
+    setRemoveTarget(null);
+    toast({ title: 'Payment method removed', description: m.label });
+  };
 
   return (
     <DashboardLayout>
@@ -71,7 +133,7 @@ export default function PaymentsPage() {
               </TableHeader>
               <TableBody>
                 {orders.map((order) => {
-                  const cfg = statusConfig[order.status as keyof typeof statusConfig];
+                  const cfg = statusConfig[order.status];
                   return (
                     <TableRow key={order.id}>
                       <TableCell className="font-mono text-xs">{order.id}</TableCell>
@@ -85,7 +147,7 @@ export default function PaymentsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-end">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => downloadInvoice(order)} aria-label={`Download invoice ${order.id}`}>
                           <Download className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
@@ -100,33 +162,83 @@ export default function PaymentsPage() {
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <h2 className="mb-4 font-display text-lg font-semibold text-foreground">Payment Methods</h2>
           <div className="space-y-3">
-            <div className="flex items-center justify-between rounded-xl border border-border bg-background p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <CreditCard className="h-4 w-4 text-primary" />
+            {methods.map((m) => (
+              <div key={m.id} className="flex items-center justify-between rounded-xl border border-border bg-background p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-12 items-center justify-center rounded-lg bg-primary/10">
+                    <CreditCard className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{m.label}</p>
+                    <p className="text-xs text-muted-foreground">{m.detail}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">Visa •••• 4242</p>
-                  <p className="text-xs text-muted-foreground">Expires 08/28</p>
-                </div>
+                {m.isDefault ? (
+                  <Badge variant="secondary">Default</Badge>
+                ) : (
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setRemoveTarget(m)}>
+                    Remove
+                  </Button>
+                )}
               </div>
-              <Badge variant="secondary">Default</Badge>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border border-border bg-background p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <CreditCard className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">PayPal</p>
-                  <p className="text-xs text-muted-foreground">you@example.com</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">Remove</Button>
-            </div>
-            <Button variant="outline" className="w-full">Add payment method</Button>
+            ))}
+            <Button variant="outline" className="w-full" onClick={() => setAddOpen(true)}>
+              <Plus className="me-1.5 h-4 w-4" /> Add payment method
+            </Button>
           </div>
         </div>
+
+        {/* Add payment method dialog */}
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add payment method</DialogTitle>
+              <DialogDescription>Demo only — nothing is charged or stored on a server.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-1">
+              <div className="space-y-2">
+                <Label htmlFor="card-number">Card number</Label>
+                <Input
+                  id="card-number"
+                  placeholder="4242 4242 4242 4242"
+                  inputMode="numeric"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="card-expiry">Expiry (MM/YY)</Label>
+                <Input
+                  id="card-expiry"
+                  placeholder="08/28"
+                  inputMode="numeric"
+                  value={expiry}
+                  onChange={(e) => setExpiry(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+              <Button onClick={addMethod} className="bg-primary text-primary-foreground">Save card</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Remove confirmation */}
+        <Dialog open={!!removeTarget} onOpenChange={(open) => !open && setRemoveTarget(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Remove payment method?</DialogTitle>
+              <DialogDescription>{removeTarget?.label} will be removed from your account.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRemoveTarget(null)}>Keep it</Button>
+              <Button variant="destructive" onClick={() => removeTarget && removeMethod(removeTarget)}>
+                <Trash2 className="me-1.5 h-3.5 w-3.5" /> Remove
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

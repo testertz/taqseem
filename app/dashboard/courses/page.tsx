@@ -3,20 +3,14 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { ArchFrame } from '@/components/brand/brand';
-import { ProgressRing } from '@/components/brand/dashboard-extensions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { enrolledCourses } from '@/lib/dashboard-data';
 import { courses } from '@/lib/marketing-data';
-import { PlayCircle, Award, CheckCircle2, Star, Clock, BookOpen } from 'lucide-react';
+import { PlayCircle, Award, CheckCircle2, Clock, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-
-const enrolledCourses = [
-  { courseId: 'c1', progress: 65, status: 'in-progress' as const },
-  { courseId: 'c2', progress: 30, status: 'in-progress' as const },
-  { courseId: 'c6', progress: 100, status: 'completed' as const },
-];
 
 export default function MyCoursesPage() {
   const [filter, setFilter] = useState<'all' | 'in-progress' | 'completed'>('all');
@@ -26,7 +20,7 @@ export default function MyCoursesPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">My Courses</h1>
             <p className="mt-1 text-sm text-muted-foreground">{enrolledCourses.length} courses enrolled</p>
@@ -63,12 +57,11 @@ export default function MyCoursesPage() {
               const course = courses.find((c) => c.id === enrolled.courseId);
               if (!course) return null;
               return (
-                <Link
+                <div
                   key={course.id}
-                  href={`/dashboard/courses/${course.id}`}
                   className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg"
                 >
-                  <div className="relative">
+                  <Link href={`/dashboard/courses/${course.id}`} className="relative">
                     <ArchFrame className="aspect-[16/10] w-full bg-secondary">
                       <img src={course.thumbnail} alt={course.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     </ArchFrame>
@@ -81,10 +74,17 @@ export default function MyCoursesPage() {
                         <Badge className="bg-primary/10 text-primary">In Progress</Badge>
                       )}
                     </div>
-                  </div>
+                  </Link>
                   <div className="flex flex-1 flex-col p-4">
-                    <h3 className="mb-1 line-clamp-2 font-display text-sm font-semibold leading-snug text-foreground group-hover:text-primary">{course.title}</h3>
-                    <p className="mb-3 text-xs text-muted-foreground">{course.instructor}</p>
+                    <Link href={`/dashboard/courses/${course.id}`}>
+                      <h3 className="mb-1 line-clamp-2 font-display text-sm font-semibold leading-snug text-foreground group-hover:text-primary">{course.title}</h3>
+                      <p className="mb-3 text-xs text-muted-foreground">{course.instructor}</p>
+                    </Link>
+                    {enrolled.status === 'in-progress' && (
+                      <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" /> Next: {enrolled.lastLessonTitle}
+                      </p>
+                    )}
                     <div className="mt-auto">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-xs text-muted-foreground tabular-nums">{enrolled.progress}%</span>
@@ -96,18 +96,22 @@ export default function MyCoursesPage() {
                       </div>
                       <Progress value={enrolled.progress} className="h-1.5" />
                       {enrolled.status === 'in-progress' && (
-                        <Button size="sm" className="mt-3 w-full bg-primary text-primary-foreground">
-                          <PlayCircle className="me-1.5 h-3.5 w-3.5" /> Continue
-                        </Button>
+                        <Link href={`/dashboard/courses/${course.id}?lesson=${enrolled.lastLessonIndex}`}>
+                          <Button size="sm" className="mt-3 w-full bg-primary text-primary-foreground">
+                            <PlayCircle className="me-1.5 h-3.5 w-3.5" /> Resume Lesson {enrolled.lastLessonIndex}
+                          </Button>
+                        </Link>
                       )}
                       {enrolled.status === 'completed' && (
-                        <Button size="sm" variant="outline" className="mt-3 w-full">
-                          <Award className="me-1.5 h-3.5 w-3.5 text-primary" /> View Certificate
-                        </Button>
+                        <Link href="/dashboard/certificates">
+                          <Button size="sm" variant="outline" className="mt-3 w-full">
+                            <Award className="me-1.5 h-3.5 w-3.5 text-primary" /> View Certificate
+                          </Button>
+                        </Link>
                       )}
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
