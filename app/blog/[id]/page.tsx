@@ -1,6 +1,5 @@
 'use client';
 
-import { use } from 'react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { PatternBackground, OrnamentDivider } from '@/components/brand/brand';
@@ -36,8 +35,8 @@ const relatedPosts = [
   { id: 'b6', title: 'Takaful vs Conventional Insurance', category: 'Takaful', date: 'Sep 14, 2026', image: 'https://images.pexels.com/photos/8069753/pexels-photo-8069753.jpeg?auto=compress&cs=tinysrgb&h=300&w=500' },
 ];
 
-export default function BlogPostPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function BlogPostPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const post = blogPosts[id] || blogPosts.b1;
 
   return (

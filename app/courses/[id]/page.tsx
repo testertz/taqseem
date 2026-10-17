@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState } from 'react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { PatternBackground, ArchFrame } from '@/components/brand/brand';
@@ -13,8 +13,8 @@ import { Star, Clock, BookOpen, Globe, Award, PlayCircle, CheckCircle2, ChevronL
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function CourseDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const course = courses.find((c) => c.id === id) || courses[0];
   const instructor = instructors.find((i) => i.id === course.instructorId);
   const relatedCourses = courses.filter((c) => c.id !== course.id && c.topic === course.topic).slice(0, 3);

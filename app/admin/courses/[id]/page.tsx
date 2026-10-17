@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState } from 'react';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,8 @@ import { courses } from '@/lib/marketing-data';
 import { Plus, Trash2, GripVertical, Video, FileText, HelpCircle, Save, Eye, ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
 
-export default function CourseEditorPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function CourseEditorPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const existingCourse = courses.find((c) => c.id === id);
   const [title, setTitle] = useState(existingCourse?.title || '');
   const [description, setDescription] = useState(existingCourse?.description || '');
