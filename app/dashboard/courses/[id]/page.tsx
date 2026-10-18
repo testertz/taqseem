@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { ArchFrame } from '@/components/brand/brand';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,8 @@ import { PlayCircle, Lock, CheckCircle2, FileText, MessageSquare, NotebookPen, C
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-export default function CoursePlayerPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function CoursePlayerPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const course = courses.find((c) => c.id === id) || courses[0];
   const [activeTab, setActiveTab] = useState('overview');
   const [activeLesson, setActiveLesson] = useState('l1');
