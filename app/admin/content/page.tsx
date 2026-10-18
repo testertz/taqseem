@@ -5,11 +5,14 @@ import { AdminLayout } from '@/components/layout/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { adminBlogPosts } from '@/lib/admin-data';
-import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, FileText, Calendar } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { adminBlogPosts, type AdminBlogPost } from '@/lib/admin-data';
+import { useToast } from '@/hooks/use-toast';
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, FileText, Calendar, Send } from 'lucide-react';
 
 const statusBadge = (status: string) => {
   if (status === 'published') return <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">Published</Badge>;
@@ -17,15 +20,75 @@ const statusBadge = (status: string) => {
   return <Badge className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/10">Scheduled</Badge>;
 };
 
+const emptyForm = { title: '', author: 'Dr. Yusuf Al-Kabir', category: 'Fintech', excerpt: '', status: 'draft' as AdminBlogPost['status'] };
+
 export default function AdminContentPage() {
+  const { toast } = useToast();
+  const [posts, setPosts] = useState<AdminBlogPost[]>(adminBlogPosts);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [editTarget, setEditTarget] = useState<AdminBlogPost | null>(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<AdminBlogPost | null>(null);
 
-  const filtered = adminBlogPosts.filter((p) => {
+  const filtered = posts.filter((p) => {
     if (search && !p.title.toLowerCase().includes(search.toLowerCase())) return false;
     if (statusFilter !== 'all' && p.status !== statusFilter) return false;
     return true;
   });
+
+  const today = () => new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const addPost = () => {
+    if (!form.title.trim() || !form.excerpt.trim()) {
+      toast({ title: 'Missing details', description: 'Title and excerpt are required.', variant: 'destructive' });
+      return;
+    }
+    const newPost: AdminBlogPost = {
+      id: `b${Date.now()}`,
+      title: form.title.trim(),
+      author: form.author,
+      category: form.category,
+      status: form.status,
+      date: today(),
+      views: 0,
+      excerpt: form.excerpt.trim(),
+    };
+    setPosts((prev) => [newPost, ...prev]);
+    setForm(emptyForm);
+    setAddOpen(false);
+    toast({ title: form.status === 'published' ? 'Post published' : 'Post saved', description: `"${newPost.title}" was ${form.status === 'published' ? 'published' : 'saved as ' + form.status}.` });
+  };
+
+  const openEdit = (p: AdminBlogPost) => {
+    setEditTarget(p);
+    setEditForm({ title: p.title, author: p.author, category: p.category, excerpt: p.excerpt, status: p.status });
+  };
+
+  const saveEdit = () => {
+    if (!editTarget) return;
+    if (!editForm.title.trim() || !editForm.excerpt.trim()) {
+      toast({ title: 'Missing details', description: 'Title and excerpt are required.', variant: 'destructive' });
+      return;
+    }
+    setPosts((prev) => prev.map((p) => (p.id === editTarget.id ? { ...p, title: editForm.title.trim(), author: editForm.author, category: editForm.category, excerpt: editForm.excerpt.trim(), status: editForm.status } : p)));
+    toast({ title: 'Post updated', description: `"${editForm.title.trim()}" was saved.` });
+    setEditTarget(null);
+  };
+
+  const setStatus = (p: AdminBlogPost, status: AdminBlogPost['status']) => {
+    setPosts((prev) => prev.map((x) => (x.id === p.id ? { ...x, status } : x)));
+    toast({ title: status === 'published' ? 'Post published' : status === 'draft' ? 'Moved to drafts' : 'Post scheduled', description: p.title });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    setPosts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+    toast({ title: 'Post deleted', description: `"${deleteTarget.title}" was removed.`, variant: 'destructive' });
+    setDeleteTarget(null);
+  };
 
   return (
     <AdminLayout>
@@ -34,9 +97,9 @@ export default function AdminContentPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground">Content Management</h1>
-            <p className="text-sm text-muted-foreground">{adminBlogPosts.length} posts · {adminBlogPosts.filter((p) => p.status === 'published').length} published</p>
+            <p className="text-sm text-muted-foreground">{posts.length} posts · {posts.filter((p) => p.status === 'published').length} published</p>
           </div>
-          <Button size="sm"><span className="flex items-center gap-1.5"><Plus className="h-4 w-4" /> New Post</span></Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}><span className="flex items-center gap-1.5"><Plus className="h-4 w-4" /> New Post</span></Button>
         </div>
 
         {/* Stats */}
@@ -47,7 +110,7 @@ export default function AdminContentPage() {
                 <FileText className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-xl font-bold tabular-nums text-foreground">{adminBlogPosts.length}</p>
+                <p className="text-xl font-bold tabular-nums text-foreground">{posts.length}</p>
                 <p className="text-xs text-muted-foreground">Total Posts</p>
               </div>
             </div>
@@ -58,7 +121,7 @@ export default function AdminContentPage() {
                 <Eye className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-xl font-bold tabular-nums text-foreground">{adminBlogPosts.reduce((a, p) => a + p.views, 0).toLocaleString()}</p>
+                <p className="text-xl font-bold tabular-nums text-foreground">{posts.reduce((a, p) => a + p.views, 0).toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Total Views</p>
               </div>
             </div>
@@ -69,7 +132,7 @@ export default function AdminContentPage() {
                 <Calendar className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <p className="text-xl font-bold tabular-nums text-foreground">{adminBlogPosts.filter((p) => p.status === 'scheduled').length}</p>
+                <p className="text-xl font-bold tabular-nums text-foreground">{posts.filter((p) => p.status === 'scheduled').length}</p>
                 <p className="text-xs text-muted-foreground">Scheduled</p>
               </div>
             </div>
@@ -80,7 +143,7 @@ export default function AdminContentPage() {
                 <FileText className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-xl font-bold tabular-nums text-foreground">{adminBlogPosts.filter((p) => p.status === 'draft').length}</p>
+                <p className="text-xl font-bold tabular-nums text-foreground">{posts.filter((p) => p.status === 'draft').length}</p>
                 <p className="text-xs text-muted-foreground">Drafts</p>
               </div>
             </div>
@@ -139,10 +202,15 @@ export default function AdminContentPage() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem><Eye className="me-2 h-4 w-4" /> View Post</DropdownMenuItem>
-                          <DropdownMenuItem><Edit className="me-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEdit(post)}><Edit className="me-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                          {post.status !== 'published' && (
+                            <DropdownMenuItem onClick={() => setStatus(post, 'published')}><Send className="me-2 h-4 w-4" /> Publish</DropdownMenuItem>
+                          )}
+                          {post.status === 'published' && (
+                            <DropdownMenuItem onClick={() => setStatus(post, 'draft')}><FileText className="me-2 h-4 w-4" /> Unpublish</DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive"><Trash2 className="me-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(post)}><Trash2 className="me-2 h-4 w-4" /> Delete</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -173,8 +241,8 @@ export default function AdminContentPage() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem><Edit className="me-2 h-4 w-4" /> Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive"><Trash2 className="me-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openEdit(post)}><Edit className="me-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(post)}><Trash2 className="me-2 h-4 w-4" /> Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -189,6 +257,71 @@ export default function AdminContentPage() {
             </div>
           )}
         </div>
+
+        {/* Post form dialog (create + edit) */}
+        <Dialog open={addOpen || !!editTarget} onOpenChange={(open) => { if (!open) { setAddOpen(false); setEditTarget(null); } }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editTarget ? 'Edit post' : 'New post'}</DialogTitle>
+              <DialogDescription>{editTarget ? `Update "${editTarget.title}".` : 'Create a blog post. Save as draft or publish immediately.'}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-1">
+              <div className="space-y-2">
+                <Label htmlFor="post-title">Title</Label>
+                <Input id="post-title" placeholder="e.g. Understanding Sukuk" value={editTarget ? editForm.title : form.title} onChange={(e) => (editTarget ? setEditForm({ ...editForm, title: e.target.value }) : setForm({ ...form, title: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="post-excerpt">Excerpt</Label>
+                <Textarea id="post-excerpt" rows={3} placeholder="Short summary shown in listings..." value={editTarget ? editForm.excerpt : form.excerpt} onChange={(e) => (editTarget ? setEditForm({ ...editForm, excerpt: e.target.value }) : setForm({ ...form, excerpt: e.target.value }))} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Author</Label>
+                  <Select value={editTarget ? editForm.author : form.author} onValueChange={(v) => (editTarget ? setEditForm({ ...editForm, author: v }) : setForm({ ...form, author: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Dr. Yusuf Al-Kabir">Dr. Yusuf Al-Kabir</SelectItem>
+                      <SelectItem value="Dr. Amina Hassan">Dr. Amina Hassan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="post-category">Category</Label>
+                  <Input id="post-category" value={editTarget ? editForm.category : form.category} onChange={(e) => (editTarget ? setEditForm({ ...editForm, category: e.target.value }) : setForm({ ...form, category: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={editTarget ? editForm.status : form.status} onValueChange={(v) => (editTarget ? setEditForm({ ...editForm, status: v as AdminBlogPost['status'] }) : setForm({ ...form, status: v as AdminBlogPost['status'] }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setAddOpen(false); setEditTarget(null); }}>Cancel</Button>
+              <Button onClick={editTarget ? saveEdit : addPost}>{editTarget ? 'Save changes' : 'Create post'}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete confirmation */}
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete this post?</DialogTitle>
+              <DialogDescription>"{deleteTarget?.title}" will be permanently removed. This cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Keep post</Button>
+              <Button variant="destructive" onClick={confirmDelete}><Trash2 className="me-1.5 h-3.5 w-3.5" /> Delete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

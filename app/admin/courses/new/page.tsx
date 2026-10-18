@@ -8,16 +8,60 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Save, Eye, ArrowLeft, Upload, Video, FileText, HelpCircle, X, GripVertical } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { saveCourse } from '@/lib/course-store';
+import { useToast } from '@/hooks/use-toast';
 
 export default function NewCoursePage() {
+  const router = useRouter();
+  const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [level, setLevel] = useState('Beginner');
+  const [level, setLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
   const [price, setPrice] = useState('');
   const [topic, setTopic] = useState('Banking');
+  const [instructor, setInstructor] = useState('i1');
   const [whatYouLearn, setWhatYouLearn] = useState<string[]>(['']);
   const [requirements, setRequirements] = useState<string[]>(['']);
+
+  const createCourse = (status: 'published' | 'draft') => {
+    const parsedPrice = parseFloat(price);
+    if (!title.trim() || isNaN(parsedPrice) || parsedPrice <= 0) {
+      toast({ title: 'Missing details', description: 'A title and a positive price are required.', variant: 'destructive' });
+      return;
+    }
+    const instructorName = instructor === 'i1' ? 'Dr. Yusuf Al-Kabir' : 'Dr. Amina Hassan';
+    saveCourse({
+      id: `c${Date.now()}`,
+      title: title.trim(),
+      instructor: instructorName,
+      instructorId: instructor,
+      level,
+      rating: 0,
+      reviews: 0,
+      lessons: 0,
+      hours: 0,
+      price: parsedPrice,
+      currency: 'USD',
+      thumbnail: topic === 'Banking' || topic === 'Wealth Management' || topic === 'Ethics & Aqeedah'
+        ? 'https://images.pexels.com/photos/13431445/pexels-photo-13431445.jpeg?auto=compress&cs=tinysrgb&h=400&w=600'
+        : 'https://images.pexels.com/photos/19989050/pexels-photo-19989050.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+      topic,
+      language: 'English',
+      lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+      description: description.trim(),
+      whatYouLearn: whatYouLearn.map((s) => s.trim()).filter(Boolean),
+      requirements: requirements.map((s) => s.trim()).filter(Boolean),
+      sections: [],
+      courseReviews: [],
+      status,
+      enrollments: 0,
+      revenue: 0,
+    });
+    toast({ title: status === 'published' ? 'Course published' : 'Draft saved', description: `"${title.trim()}" was created.` });
+    router.push('/admin/courses');
+  };
 
   return (
     <AdminLayout>
@@ -34,8 +78,8 @@ export default function NewCoursePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">Save as Draft</Button>
-            <Button size="sm"><span className="flex items-center gap-1.5"><Save className="h-4 w-4" /> Publish</span></Button>
+            <Button variant="outline" size="sm" onClick={() => createCourse('draft')}>Save as Draft</Button>
+            <Button size="sm" onClick={() => createCourse('published')}><span className="flex items-center gap-1.5"><Save className="h-4 w-4" /> Publish</span></Button>
           </div>
         </div>
 
@@ -56,7 +100,7 @@ export default function NewCoursePage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label>Level</Label>
-                    <Select value={level} onValueChange={setLevel}>
+                    <Select value={level} onValueChange={(v) => setLevel(v as 'Beginner' | 'Intermediate' | 'Advanced')}>
                       <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Beginner">Beginner</SelectItem>
@@ -85,7 +129,7 @@ export default function NewCoursePage() {
                   </div>
                   <div>
                     <Label>Instructor</Label>
-                    <Select defaultValue="i1">
+                    <Select value={instructor} onValueChange={setInstructor}>
                       <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="i1">Dr. Yusuf Al-Kabir</SelectItem>
@@ -175,7 +219,7 @@ export default function NewCoursePage() {
                     <span className="font-medium text-foreground">Private</span>
                   </div>
                 </div>
-                <Button className="mt-4 w-full">Publish Course</Button>
+                <Button className="mt-4 w-full" onClick={() => createCourse('published')}>Publish Course</Button>
               </div>
             </div>
           </aside>

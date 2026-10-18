@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { adminCourses } from '@/lib/admin-data';
-import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Copy, Download, Filter, Star } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useAdminCourses, deleteCourse, duplicateCourse } from '@/lib/course-store';
+import { useToast } from '@/hooks/use-toast';
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Copy, Filter, Star } from 'lucide-react';
 import Link from 'next/link';
 
 const statusBadge = (status: string) => {
@@ -17,13 +19,16 @@ const statusBadge = (status: string) => {
 };
 
 export default function AdminCoursesPage() {
+  const { toast } = useToast();
+  const coursesList = useAdminCourses();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [topicFilter, setTopicFilter] = useState('all');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
-  const topics = Array.from(new Set(adminCourses.map((c) => c.topic)));
+  const topics = Array.from(new Set(coursesList.map((c) => c.topic)));
 
-  const filtered = adminCourses.filter((c) => {
+  const filtered = coursesList.filter((c) => {
     if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false;
     if (statusFilter !== 'all' && c.status !== statusFilter) return false;
     if (topicFilter !== 'all' && c.topic !== topicFilter) return false;
@@ -37,7 +42,7 @@ export default function AdminCoursesPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground">Courses</h1>
-            <p className="text-sm text-muted-foreground">{adminCourses.length} courses · {adminCourses.filter((c) => c.status === 'published').length} published</p>
+            <p className="text-sm text-muted-foreground">{coursesList.length} courses · {coursesList.filter((c) => c.status === 'published').length} published</p>
           </div>
           <Button size="sm" asChild>
             <Link href="/admin/courses/new">
@@ -142,10 +147,14 @@ export default function AdminCoursesPage() {
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/courses/${course.id}`}><Edit className="me-2 h-4 w-4" /> Edit</Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem><Copy className="me-2 h-4 w-4" /> Duplicate</DropdownMenuItem>
-                          <DropdownMenuItem><Download className="me-2 h-4 w-4" /> Export</DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              const copy = duplicateCourse(course.id);
+                              if (copy) toast({ title: 'Course duplicated', description: `"${copy.title}" was created as a draft.` });
+                            }}
+                          ><Copy className="me-2 h-4 w-4" /> Duplicate</DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive"><Trash2 className="me-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(course)}><Trash2 className="me-2 h-4 w-4" /> Delete</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -194,6 +203,30 @@ export default function AdminCoursesPage() {
             </div>
           )}
         </div>
+
+        {/* Delete confirmation */}
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete this course?</DialogTitle>
+              <DialogDescription>"{deleteTarget?.title}" and its enrollments will be permanently removed. This cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Keep course</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!deleteTarget) return;
+                  deleteCourse(deleteTarget.id);
+                  toast({ title: 'Course deleted', description: `"${deleteTarget.title}" was removed.`, variant: 'destructive' });
+                  setDeleteTarget(null);
+                }}
+              >
+                <Trash2 className="me-1.5 h-3.5 w-3.5" /> Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

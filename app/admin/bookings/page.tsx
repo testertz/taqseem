@@ -5,9 +5,12 @@ import { AdminLayout } from '@/components/layout/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { adminBookings } from '@/lib/admin-data';
-import { Search, CalendarDays, Clock, Video, X, CheckCircle2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { adminBookings, type AdminBooking } from '@/lib/admin-data';
+import { useToast } from '@/hooks/use-toast';
+import { Search, CalendarDays, Clock, Video, X, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 
 const statusBadge = (status: string) => {
   if (status === 'upcoming') return <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Upcoming</Badge>;
@@ -15,11 +18,18 @@ const statusBadge = (status: string) => {
   return <Badge variant="destructive">Cancelled</Badge>;
 };
 
+const emptyForm = { student: '', mentor: 'Dr. Yusuf Al-Kabir', topic: '', date: '', time: '', duration: '60 min', price: '' };
+
 export default function AdminBookingsPage() {
+  const { toast } = useToast();
+  const [bookings, setBookings] = useState<AdminBooking[]>(adminBookings);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<AdminBooking | null>(null);
 
-  const filtered = adminBookings.filter((b) => {
+  const filtered = bookings.filter((b) => {
     if (search && !b.student.toLowerCase().includes(search.toLowerCase()) && !b.mentor.toLowerCase().includes(search.toLowerCase()) && !b.topic.toLowerCase().includes(search.toLowerCase())) return false;
     if (statusFilter !== 'all' && b.status !== statusFilter) return false;
     return true;
@@ -27,6 +37,48 @@ export default function AdminBookingsPage() {
 
   const upcoming = filtered.filter((b) => b.status === 'upcoming');
   const past = filtered.filter((b) => b.status !== 'upcoming');
+
+  const nextBookingId = () => {
+    const nums = bookings.map((b) => parseInt(b.id.replace(/\D/g, ''), 10)).filter((n) => !isNaN(n));
+    return `BK-${(nums.length ? Math.max(...nums) : 100) + 1}`;
+  };
+
+  const addBooking = () => {
+    const price = parseFloat(form.price);
+    if (!form.student.trim() || !form.topic.trim() || !form.date || !form.time || isNaN(price) || price <= 0) {
+      toast({ title: 'Check your details', description: 'Student, topic, date, time, and a positive price are required.', variant: 'destructive' });
+      return;
+    }
+    const newBooking: AdminBooking = {
+      id: nextBookingId(),
+      student: form.student.trim(),
+      studentEmail: 'student@email.com',
+      mentor: form.mentor,
+      topic: form.topic.trim(),
+      date: new Date(form.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      time: form.time,
+      duration: form.duration,
+      price,
+      status: 'upcoming',
+    };
+    setBookings((prev) => [newBooking, ...prev]);
+    setForm(emptyForm);
+    setAddOpen(false);
+    toast({ title: 'Booking created', description: `${newBooking.student} with ${newBooking.mentor} on ${newBooking.date}.` });
+  };
+
+  const setStatus = (b: AdminBooking, status: AdminBooking['status']) => {
+    setBookings((prev) => prev.map((x) => (x.id === b.id ? { ...x, status } : x)));
+    if (status === 'cancelled') toast({ title: 'Booking cancelled', description: `${b.id} — ${b.topic}`, variant: 'destructive' });
+    else toast({ title: 'Booking marked completed', description: `${b.id} — ${b.topic}` });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    setBookings((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+    toast({ title: 'Booking deleted', description: `${deleteTarget.id} was removed.`, variant: 'destructive' });
+    setDeleteTarget(null);
+  };
 
   return (
     <AdminLayout>
@@ -37,6 +89,7 @@ export default function AdminBookingsPage() {
             <h1 className="font-display text-2xl font-bold text-foreground">Bookings</h1>
             <p className="text-sm text-muted-foreground">{upcoming.length} upcoming · {past.length} past</p>
           </div>
+          <Button size="sm" onClick={() => setAddOpen(true)}><span className="flex items-center gap-1.5"><Plus className="h-4 w-4" /> New Booking</span></Button>
         </div>
 
         {/* Filters */}
@@ -85,8 +138,11 @@ export default function AdminBookingsPage() {
                   <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
                     <span className="font-semibold tabular-nums text-foreground">${booking.price}</span>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" className="text-destructive">
+                      <Button variant="outline" size="sm" className="text-destructive" onClick={() => setStatus(booking, 'cancelled')}>
                         <span className="flex items-center gap-1"><X className="h-3.5 w-3.5" /> Cancel</span>
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setStatus(booking, 'completed')}>
+                        <span className="flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Complete</span>
                       </Button>
                       <Button size="sm">
                         <span className="flex items-center gap-1"><Video className="h-3.5 w-3.5" /> Join</span>
@@ -115,6 +171,7 @@ export default function AdminBookingsPage() {
                       <th className="px-4 py-3 text-start">Date</th>
                       <th className="px-4 py-3 text-start">Amount</th>
                       <th className="px-4 py-3 text-start">Status</th>
+                      <th className="px-4 py-3 text-end"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -127,6 +184,11 @@ export default function AdminBookingsPage() {
                         <td className="px-4 py-3 text-muted-foreground">{booking.date}</td>
                         <td className="px-4 py-3 font-medium tabular-nums text-foreground">${booking.price}</td>
                         <td className="px-4 py-3">{statusBadge(booking.status)}</td>
+                        <td className="px-4 py-3 text-end">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" aria-label={`Delete ${booking.id}`} onClick={() => setDeleteTarget(booking)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -157,6 +219,81 @@ export default function AdminBookingsPage() {
             <p className="mt-2 text-sm text-muted-foreground">No bookings match your filters.</p>
           </div>
         )}
+
+        {/* Add booking dialog */}
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>New booking</DialogTitle>
+              <DialogDescription>Schedule a private session. It starts as upcoming.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-1">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="new-booking-student">Student name</Label>
+                  <Input id="new-booking-student" placeholder="e.g. Maryam Omar" value={form.student} onChange={(e) => setForm({ ...form, student: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Mentor</Label>
+                  <Select value={form.mentor} onValueChange={(v) => setForm({ ...form, mentor: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Dr. Yusuf Al-Kabir">Dr. Yusuf Al-Kabir</SelectItem>
+                      <SelectItem value="Dr. Amina Hassan">Dr. Amina Hassan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-booking-topic">Topic</Label>
+                <Input id="new-booking-topic" placeholder="e.g. Sukuk Structures Review" value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="new-booking-date">Date</Label>
+                  <Input id="new-booking-date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-booking-time">Time</Label>
+                  <Input id="new-booking-time" type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-booking-price">Price (USD)</Label>
+                  <Input id="new-booking-price" type="number" min="0" placeholder="150" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Duration</Label>
+                <Select value={form.duration} onValueChange={(v) => setForm({ ...form, duration: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30 min">30 min</SelectItem>
+                    <SelectItem value="45 min">45 min</SelectItem>
+                    <SelectItem value="60 min">60 min</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+              <Button onClick={addBooking}>Create booking</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete confirmation */}
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete this booking?</DialogTitle>
+              <DialogDescription>{deleteTarget?.id} — {deleteTarget?.topic} ({deleteTarget?.student}) will be permanently removed. This cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Keep booking</Button>
+              <Button variant="destructive" onClick={confirmDelete}><Trash2 className="me-1.5 h-3.5 w-3.5" /> Delete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

@@ -5,11 +5,14 @@ import { AdminLayout } from '@/components/layout/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { adminUsers } from '@/lib/admin-data';
-import { Search, Plus, MoreHorizontal, Mail, Ban, Trash2, Eye, UserCheck, Users as UsersIcon } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { adminUsers, type AdminUser } from '@/lib/admin-data';
+import { useToast } from '@/hooks/use-toast';
+import { Search, Plus, MoreHorizontal, Mail, Ban, Trash2, Eye, UserCheck, Users as UsersIcon, Pencil } from 'lucide-react';
 
 const roleBadge = (role: string) => {
   if (role === 'admin') return <Badge className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/10">Admin</Badge>;
@@ -23,20 +26,87 @@ const statusBadge = (status: string) => {
   return <Badge variant="destructive">Suspended</Badge>;
 };
 
+const emptyForm = { name: '', email: '', role: 'student' as AdminUser['role'], country: '' };
+
 export default function AdminUsersPage() {
+  const { toast } = useToast();
+  const [users, setUsers] = useState<AdminUser[]>(adminUsers);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [editTarget, setEditTarget] = useState<AdminUser | null>(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
-  const filtered = adminUsers.filter((u) => {
+  const filtered = users.filter((u) => {
     if (search && !u.name.toLowerCase().includes(search.toLowerCase()) && !u.email.toLowerCase().includes(search.toLowerCase())) return false;
     if (roleFilter !== 'all' && u.role !== roleFilter) return false;
     if (statusFilter !== 'all' && u.status !== statusFilter) return false;
     return true;
   });
 
-  const totalStudents = adminUsers.filter((u) => u.role === 'student').length;
-  const totalInstructors = adminUsers.filter((u) => u.role === 'instructor').length;
+  const totalStudents = users.filter((u) => u.role === 'student').length;
+  const totalInstructors = users.filter((u) => u.role === 'instructor').length;
+
+  const addUser = () => {
+    if (!form.name.trim() || !form.email.trim()) {
+      toast({ title: 'Missing details', description: 'Name and email are required.', variant: 'destructive' });
+      return;
+    }
+    if (users.some((u) => u.email.toLowerCase() === form.email.trim().toLowerCase())) {
+      toast({ title: 'Email already exists', description: 'A user with that email is already registered.', variant: 'destructive' });
+      return;
+    }
+    const newUser: AdminUser = {
+      id: `u${Date.now()}`,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      avatar: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&h=80&w=80',
+      role: form.role,
+      status: 'pending',
+      joinedDate: 'Oct 2026',
+      country: form.country.trim() || '—',
+      coursesEnrolled: 0,
+      coursesCompleted: 0,
+      totalSpent: 0,
+      lastActive: 'Just now',
+    };
+    setUsers((prev) => [newUser, ...prev]);
+    setForm(emptyForm);
+    setAddOpen(false);
+    toast({ title: 'User added', description: `${newUser.name} was created with pending status.` });
+  };
+
+  const openEdit = (u: AdminUser) => {
+    setEditTarget(u);
+    setEditForm({ name: u.name, email: u.email, role: u.role, country: u.country });
+  };
+
+  const saveEdit = () => {
+    if (!editTarget) return;
+    if (!editForm.name.trim() || !editForm.email.trim()) {
+      toast({ title: 'Missing details', description: 'Name and email are required.', variant: 'destructive' });
+      return;
+    }
+    setUsers((prev) => prev.map((u) => (u.id === editTarget.id ? { ...u, name: editForm.name.trim(), email: editForm.email.trim(), role: editForm.role, country: editForm.country.trim() || u.country } : u)));
+    toast({ title: 'User updated', description: `${editForm.name.trim()}'s details were saved.` });
+    setEditTarget(null);
+  };
+
+  const toggleStatus = (u: AdminUser) => {
+    const next: AdminUser['status'] = u.status === 'suspended' ? 'active' : 'suspended';
+    setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, status: next } : x)));
+    toast({ title: next === 'suspended' ? 'User suspended' : 'User reactivated', description: u.name });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+    toast({ title: 'User deleted', description: `${deleteTarget.name} was removed.`, variant: 'destructive' });
+    setDeleteTarget(null);
+  };
 
   return (
     <AdminLayout>
@@ -45,9 +115,9 @@ export default function AdminUsersPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground">Users</h1>
-            <p className="text-sm text-muted-foreground">{adminUsers.length} total · {totalStudents} students · {totalInstructors} instructors</p>
+            <p className="text-sm text-muted-foreground">{users.length} total · {totalStudents} students · {totalInstructors} instructors</p>
           </div>
-          <Button size="sm"><span className="flex items-center gap-1.5"><Plus className="h-4 w-4" /> Add User</span></Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}><span className="flex items-center gap-1.5"><Plus className="h-4 w-4" /> Add User</span></Button>
         </div>
 
         {/* Stat mini-cards */}
@@ -75,7 +145,7 @@ export default function AdminUsersPage() {
               <UserCheck className="h-5 w-5 text-success" />
             </div>
             <div>
-              <p className="text-xl font-bold tabular-nums text-foreground">{adminUsers.filter((u) => u.status === 'active').length}</p>
+              <p className="text-xl font-bold tabular-nums text-foreground">{users.filter((u) => u.status === 'active').length}</p>
               <p className="text-xs text-muted-foreground">Active Now</p>
             </div>
           </div>
@@ -154,15 +224,15 @@ export default function AdminUsersPage() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem><Eye className="me-2 h-4 w-4" /> View Profile</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEdit(user)}><Pencil className="me-2 h-4 w-4" /> Edit User</DropdownMenuItem>
                           <DropdownMenuItem><Mail className="me-2 h-4 w-4" /> Send Email</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {user.status === 'suspended' ? (
-                            <DropdownMenuItem><UserCheck className="me-2 h-4 w-4" /> Reactivate</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleStatus(user)}><UserCheck className="me-2 h-4 w-4" /> Reactivate</DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem><Ban className="me-2 h-4 w-4" /> Suspend</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleStatus(user)}><Ban className="me-2 h-4 w-4" /> Suspend</DropdownMenuItem>
                           )}
-                          <DropdownMenuItem className="text-destructive"><Trash2 className="me-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(user)}><Trash2 className="me-2 h-4 w-4" /> Delete</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -203,6 +273,102 @@ export default function AdminUsersPage() {
             </div>
           )}
         </div>
+
+        {/* Add user dialog */}
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add user</DialogTitle>
+              <DialogDescription>Create a new account. The user starts as pending until activated.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-1">
+              <div className="space-y-2">
+                <Label htmlFor="new-user-name">Full name</Label>
+                <Input id="new-user-name" placeholder="e.g. Amina Said" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-user-email">Email</Label>
+                <Input id="new-user-email" type="email" placeholder="name@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AdminUser['role'] })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="instructor">Instructor</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-user-country">Country</Label>
+                  <Input id="new-user-country" placeholder="e.g. Tanzania" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+              <Button onClick={addUser}>Add user</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit user dialog */}
+        <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit user</DialogTitle>
+              <DialogDescription>Update {editTarget?.name}&apos;s account details.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-1">
+              <div className="space-y-2">
+                <Label htmlFor="edit-user-name">Full name</Label>
+                <Input id="edit-user-name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-user-email">Email</Label>
+                <Input id="edit-user-email" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v as AdminUser['role'] })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="instructor">Instructor</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-country">Country</Label>
+                  <Input id="edit-user-country" value={editForm.country} onChange={(e) => setEditForm({ ...editForm, country: e.target.value })} />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
+              <Button onClick={saveEdit}>Save changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete confirmation */}
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete this user?</DialogTitle>
+              <DialogDescription>{deleteTarget?.name} ({deleteTarget?.email}) will be permanently removed. This cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Keep user</Button>
+              <Button variant="destructive" onClick={confirmDelete}><Trash2 className="me-1.5 h-3.5 w-3.5" /> Delete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

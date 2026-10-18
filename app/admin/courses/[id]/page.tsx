@@ -9,17 +9,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { adminCourses } from '@/lib/admin-data';
-import { courses } from '@/lib/marketing-data';
+import { getCourseById, saveCourse, useAdminCourses } from '@/lib/course-store';
+import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, GripVertical, Video, FileText, HelpCircle, Save, Eye, ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CourseEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const existingCourse = courses.find((c) => c.id === id);
+  const { toast } = useToast();
+  const allCourses = useAdminCourses();
+  const existingCourse = getCourseById(id);
   const [title, setTitle] = useState(existingCourse?.title || '');
   const [description, setDescription] = useState(existingCourse?.description || '');
-  const [level, setLevel] = useState<string>(existingCourse?.level || 'Beginner');
+  const [level, setLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>(existingCourse?.level || 'Beginner');
   const [price, setPrice] = useState(existingCourse?.price?.toString() || '');
   const [topic, setTopic] = useState(existingCourse?.topic || 'Banking');
   const [language, setLanguage] = useState(existingCourse?.language || 'English');
@@ -27,6 +29,65 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
   const [whatYouLearn, setWhatYouLearn] = useState<string[]>(existingCourse?.whatYouLearn || ['']);
   const [requirements, setRequirements] = useState<string[]>(existingCourse?.requirements || ['']);
   const [sections, setSections] = useState(existingCourse?.sections || [{ id: 's1', title: 'New Section', lessonsCount: 0, duration: '0m', previewCount: 0, lessons: [] }]);
+
+  if (!existingCourse) {
+    return (
+      <AdminLayout>
+        <div className="py-24 text-center">
+          <h1 className="font-display text-xl font-bold text-foreground">Course not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">This course may have been deleted.</p>
+          <Button variant="outline" size="sm" className="mt-4" asChild>
+            <Link href="/admin/courses">Back to courses</Link>
+          </Button>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  const saveChanges = () => {
+    const parsedPrice = parseFloat(price);
+    if (!title.trim() || isNaN(parsedPrice) || parsedPrice <= 0) {
+      toast({ title: 'Missing details', description: 'A title and a positive price are required.', variant: 'destructive' });
+      return;
+    }
+    saveCourse({
+      ...existingCourse,
+      title: title.trim(),
+      description: description.trim(),
+      level,
+      price: parsedPrice,
+      topic,
+      language,
+      instructor,
+      instructorId: instructor === 'Dr. Amina Hassan' ? 'i2' : 'i1',
+      whatYouLearn: whatYouLearn.map((s) => s.trim()).filter(Boolean),
+      requirements: requirements.map((s) => s.trim()).filter(Boolean),
+      sections: sections.map((s) => ({ ...s, lessonsCount: s.lessons.length, duration: `${s.lessons.reduce((a, l) => a + (parseInt(l.duration) || 0), 0)}m` })),
+      lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+    });
+    toast({ title: 'Course saved', description: `"${title.trim()}" was updated.` });
+  };
+
+  const addLesson = (sectionId: string, kind: string) => {
+    const label = kind === 'quiz' ? 'New Quiz' : kind === 'reading' ? 'New Reading' : 'New Video Lesson';
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id === sectionId
+          ? { ...s, lessons: [...s.lessons, { id: `l${Date.now()}`, title: label, duration: '10m', preview: false }] }
+          : s
+      )
+    );
+  };
+
+  const removeLesson = (sectionId: string, lessonId: string) => {
+    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, lessons: s.lessons.filter((l) => l.id !== lessonId) } : s)));
+    toast({ title: 'Lesson removed' });
+  };
+
+  const removeSection = (sectionId: string) => {
+    setSections((prev) => prev.filter((s) => s.id !== sectionId));
+    toast({ title: 'Section removed' });
+  };
 
   return (
     <AdminLayout>
@@ -46,7 +107,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
             <Button variant="outline" size="sm" asChild>
               <Link href={`/courses/${id}`}><span className="flex items-center gap-1.5"><Eye className="h-4 w-4" /> Preview</span></Link>
             </Button>
-            <Button size="sm"><span className="flex items-center gap-1.5"><Save className="h-4 w-4" /> Save Changes</span></Button>
+            <Button size="sm" onClick={saveChanges}><span className="flex items-center gap-1.5"><Save className="h-4 w-4" /> Save Changes</span></Button>
           </div>
         </div>
 
@@ -68,7 +129,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label>Level</Label>
-                    <Select value={level} onValueChange={setLevel}>
+                    <Select value={level} onValueChange={(v) => setLevel(v as 'Beginner' | 'Intermediate' | 'Advanced')}>
                       <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Beginner">Beginner</SelectItem>
@@ -226,20 +287,23 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                             <span className="flex-1 text-sm text-foreground">{lesson.title}</span>
                             <span className="text-xs tabular-nums text-muted-foreground">{lesson.duration}</span>
                             {lesson.preview && <Badge className="text-[10px]">Free Preview</Badge>}
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeLesson(section.id, lesson.id)} aria-label={`Delete ${lesson.title}`}>
                               <Trash2 className="h-3 w-3 text-muted-foreground" />
                             </Button>
                           </div>
                         ))}
                         <div className="flex gap-2 pt-1">
-                          <Button variant="ghost" size="sm" className="text-xs">
+                          <Button variant="ghost" size="sm" className="text-xs" onClick={() => addLesson(section.id, 'video')}>
                             <span className="flex items-center gap-1"><Video className="h-3.5 w-3.5" /> Video Lesson</span>
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-xs">
+                          <Button variant="ghost" size="sm" className="text-xs" onClick={() => addLesson(section.id, 'reading')}>
                             <span className="flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> Reading</span>
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-xs">
+                          <Button variant="ghost" size="sm" className="text-xs" onClick={() => addLesson(section.id, 'quiz')}>
                             <span className="flex items-center gap-1"><HelpCircle className="h-3.5 w-3.5" /> Quiz</span>
+                          </Button>
+                          <Button variant="ghost" size="sm" className="ms-auto text-xs text-destructive hover:text-destructive" onClick={() => removeSection(section.id)}>
+                            <span className="flex items-center gap-1"><Trash2 className="h-3.5 w-3.5" /> Delete Section</span>
                           </Button>
                         </div>
                       </div>
@@ -280,11 +344,11 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                   <div className="space-y-3 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Enrollments</span>
-                      <span className="font-semibold tabular-nums text-foreground">{adminCourses.find((c) => c.id === id)?.enrollments.toLocaleString() || 0}</span>
+                      <span className="font-semibold tabular-nums text-foreground">{existingCourse.enrollments.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Revenue</span>
-                      <span className="font-semibold tabular-nums text-foreground">${adminCourses.find((c) => c.id === id)?.revenue.toLocaleString() || 0}</span>
+                      <span className="font-semibold tabular-nums text-foreground">${existingCourse.revenue.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Rating</span>

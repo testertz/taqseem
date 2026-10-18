@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,9 +10,31 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 import { UserRound, Lock, Globe, Bell } from 'lucide-react';
 
 export default function SettingsPage() {
+  const { toast } = useToast();
+  const [firstName, setFirstName] = useState('Aisha');
+  const [lastName, setLastName] = useState('Juma');
+  const [email, setEmail] = useState('aisha.juma@example.com');
+  const [bio, setBio] = useState('Banking trainee passionate about Islamic finance.');
+  const [language, setLanguage] = useState('en');
+  const [timezone, setTimezone] = useState('gmt');
+  const [currency, setCurrency] = useState('usd');
+  const [darkMode, setDarkMode] = useState(false);
+
+  const saveProfile = () => {
+    if (!firstName.trim() || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast({ title: 'Check your details', description: 'A name and a valid email are required.', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Profile saved', description: `Your details were updated (demo).` });
+  };
+
+  const savePreferences = () => {
+    toast({ title: 'Preferences saved', description: 'Language, time zone, and currency updated (demo).' });
+  };
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -43,29 +66,30 @@ export default function SettingsPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First name</Label>
-                  <Input id="firstName" defaultValue="Aisha" />
+                  <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last name</Label>
-                  <Input id="lastName" defaultValue="Juma" />
+                  <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="aisha.juma@example.com" />
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="bio">Bio</Label>
                   <textarea
                     id="bio"
                     rows={3}
-                    defaultValue="Banking trainee passionate about Islamic finance."
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   />
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">
-                <Button variant="outline">Cancel</Button>
-                <Button className="bg-primary text-primary-foreground">Save changes</Button>
+                <Button variant="outline" onClick={() => { setFirstName('Aisha'); setLastName('Juma'); setEmail('aisha.juma@example.com'); setBio('Banking trainee passionate about Islamic finance.'); }}>Cancel</Button>
+                <Button className="bg-primary text-primary-foreground" onClick={saveProfile}>Save changes</Button>
               </div>
             </div>
           </TabsContent>
@@ -86,7 +110,7 @@ export default function SettingsPage() {
                   <Input id="confirmPassword" type="password" />
                 </div>
               </div>
-              <Button className="mt-6 bg-primary text-primary-foreground">Update password</Button>
+              <Button className="mt-6 bg-primary text-primary-foreground" onClick={() => toast({ title: 'Password updated', description: 'Your password was changed (demo).' })}>Update password</Button>
             </div>
           </TabsContent>
 
@@ -95,7 +119,7 @@ export default function SettingsPage() {
               <div className="space-y-5">
                 <div className="space-y-2">
                   <Label>Language</Label>
-                  <Select defaultValue="en">
+                  <Select value={language} onValueChange={setLanguage}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="en">English</SelectItem>
@@ -106,7 +130,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Time zone</Label>
-                  <Select defaultValue="gmt">
+                  <Select value={timezone} onValueChange={setTimezone}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="gmt">GMT (UTC+0)</SelectItem>
@@ -118,7 +142,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Currency</Label>
-                  <Select defaultValue="usd">
+                  <Select value={currency} onValueChange={setCurrency}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="usd">USD ($)</SelectItem>
@@ -135,10 +159,10 @@ export default function SettingsPage() {
                     <Label>Dark mode</Label>
                     <p className="text-xs text-muted-foreground">Use dark theme</p>
                   </div>
-                  <Switch />
+                  <Switch checked={darkMode} onCheckedChange={setDarkMode} />
                 </div>
               </div>
-              <Button className="mt-6 bg-primary text-primary-foreground">Save preferences</Button>
+              <Button className="mt-6 bg-primary text-primary-foreground" onClick={savePreferences}>Save preferences</Button>
             </div>
           </TabsContent>
 
@@ -161,7 +185,7 @@ export default function SettingsPage() {
                   </div>
                 ))}
               </div>
-              <Button className="mt-6 bg-primary text-primary-foreground">Save notification settings</Button>
+              <Button className="mt-6 bg-primary text-primary-foreground" onClick={() => toast({ title: 'Notifications saved', description: 'Your notification settings were updated (demo).' })}>Save notification settings</Button>
             </div>
           </TabsContent>
         </Tabs>
